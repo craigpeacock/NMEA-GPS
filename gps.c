@@ -5,13 +5,18 @@
 #include <errno.h>
 #include <termios.h>
 
+int parse_comma_delimited_str(char *string, char **fields, int max_fields);
+int debug_print_fields(int numfields, char **fields);
+
 int main(int argc, char **argv)
 {
 	int fd; 	
 	char buffer[255];  
-	int  nbytes;       
+	int nbytes; 
+	int i; 
 	struct termios options;
-
+	char *field[20];
+		
 	if ((fd = open("/dev/ttyUSB1", O_RDWR | O_NOCTTY | O_NDELAY)) < 0) {
 		perror("Open");
 		return 1;
@@ -40,15 +45,27 @@ int main(int argc, char **argv)
 		nbytes = read(fd, &buffer, sizeof(buffer));
 		if (nbytes == 0) perror("Read");
 		else {
-			buffer[nbytes] = 0;
-			if (strncmp(buffer, "$GNGGA", 6) == 0)
-				printf("%s",buffer);	
-			if (strncmp(buffer, "$GNRMC", 6) == 0)
-				printf("%s",buffer);	
+			buffer[nbytes - 1] = '\0';
+			if (strncmp(buffer, "$GNGGA", 6) == 0) {
+				//printf("(%s)",buffer);
+				i = parse_comma_delimited_str(buffer, field, 20);
+				//debug_print_fields(i,field);
+				printf("UTC Time  :%s\r\n",field[1]);
+				printf("Latitude  :%s\r\n",field[2]);
+				printf("Longitude :%s\r\n",field[4]);
+				printf("Altitude  :%s\r\n",field[9]);
+				printf("Satellites:%s\r\n",field[7]);
+			}
+			if (strncmp(buffer, "$GNRMC", 6) == 0) {
+				//printf("%s",buffer);	
+				i = parse_comma_delimited_str(buffer, field, 20);
+				//debug_print_fields(i,field);
+				printf("Speed     :%s\r\n",field[7]);
+			}
 		}
 	} while(1);
 
-	if (close(fd) < 0){
+	if (close(fd) < 0) {
 		perror("Close");
 		return 1;
 	}
@@ -56,7 +73,27 @@ int main(int argc, char **argv)
 	return (0);
 }
 
+int debug_print_fields(int numfields, char **fields)
+{
+	printf("Parsed %d fields\r\n",numfields);
+	
+	for (int i = 0; i <= numfields; i++) {
+		printf("Field %02d: [%s]\r\n",i,fields[i]);
+	}
+}
 
+int parse_comma_delimited_str(char *string, char **fields, int max_fields)
+{
+	int i = 0;
+	fields[i++] = string;
+
+	while ((i < max_fields) && NULL != (string = strchr(string, ','))) {
+		*string = '\0';
+		fields[i++] = ++string;
+	}
+
+	return --i;
+}
 
 
 
