@@ -39,6 +39,8 @@ int main(int argc, char **argv)
 	options.c_cflag &= ~CSTOPB;
 	options.c_cflag &= ~CSIZE;
 	options.c_cflag |= CS8;
+	
+	options.c_lflag &=ECHO;
 
 	// Set port attributes
 	tcsetattr(fd, TCSAFLUSH, &options);
