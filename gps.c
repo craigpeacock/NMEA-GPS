@@ -46,25 +46,31 @@ int main(int argc, char **argv)
 	tcsetattr(fd, TCSAFLUSH, &options);
 
 	do {
-		nbytes = read(fd, &buffer, sizeof(buffer));
-		if (nbytes == 0) perror("Read");
-		else {
-			buffer[nbytes - 1] = '\0';
-			//printf("%s\r\n",buffer);
-			if (checksum_valid(buffer)) {
-				if (strncmp(buffer, "$GNGGA", 6) == 0) {
-					i = parse_comma_delimited_str(buffer, field, 20);
-					//debug_print_fields(i,field);
-					printf("UTC Time  :%s\r\n",field[1]);
-					printf("Latitude  :%s\r\n",field[2]);
-					printf("Longitude :%s\r\n",field[4]);
-					printf("Altitude  :%s\r\n",field[9]);
-					printf("Satellites:%s\r\n",field[7]);
-				}
-				if (strncmp(buffer, "$GNRMC", 6) == 0) {
-					i = parse_comma_delimited_str(buffer, field, 20);
-					//debug_print_fields(i,field);
-					printf("Speed     :%s\r\n",field[7]);
+		if ((nbytes = read(fd, &buffer, sizeof(buffer))) < 0) {
+			perror("Read");
+			return 1;
+		} else {
+			if (nbytes == 0) {
+				printf("No communication from GPS module\r\n");
+				sleep(1);
+			} else {
+				buffer[nbytes - 1] = '\0';
+				printf("%s\r\n",buffer);
+				if (checksum_valid(buffer)) {
+					if (strncmp(buffer, "$GNGGA", 6) == 0) {
+						i = parse_comma_delimited_str(buffer, field, 20);
+						//debug_print_fields(i,field);
+						printf("UTC Time  :%s\r\n",field[1]);
+						printf("Latitude  :%s\r\n",field[2]);
+						printf("Longitude :%s\r\n",field[4]);
+						printf("Altitude  :%s\r\n",field[9]);
+						printf("Satellites:%s\r\n",field[7]);
+					}
+					if (strncmp(buffer, "$GNRMC", 6) == 0) {
+						i = parse_comma_delimited_str(buffer, field, 20);
+						//debug_print_fields(i,field);
+						printf("Speed     :%s\r\n",field[7]);
+					}
 				}
 			}
 		}
