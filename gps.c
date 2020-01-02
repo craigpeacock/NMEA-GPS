@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 	options.c_cflag &= ~CSIZE;
 	options.c_cflag |= CS8;
 	
-	options.c_lflag &=ECHO;
+	options.c_lflag &= ~ECHO;
 
 	// Set port attributes
 	tcsetattr(fd, TCSAFLUSH, &options);
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 				sleep(1);
 			} else {
 				buffer[nbytes - 1] = '\0';
-				printf("%s\r\n",buffer);
+				//printf("%s\r\n",buffer);
 				if (checksum_valid(buffer)) {
 					if (strncmp(buffer, "$GNGGA", 6) == 0) {
 						i = parse_comma_delimited_str(buffer, field, 20);
