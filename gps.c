@@ -5,6 +5,8 @@
 #include <errno.h>
 #include <termios.h>
 
+int hex2int(char *c);
+int checksum_valid(char *string);
 int parse_comma_delimited_str(char *string, char **fields, int max_fields);
 int debug_print_fields(int numfields, char **fields);
 
@@ -46,21 +48,22 @@ int main(int argc, char **argv)
 		if (nbytes == 0) perror("Read");
 		else {
 			buffer[nbytes - 1] = '\0';
-			if (strncmp(buffer, "$GNGGA", 6) == 0) {
-				//printf("(%s)",buffer);
-				i = parse_comma_delimited_str(buffer, field, 20);
-				//debug_print_fields(i,field);
-				printf("UTC Time  :%s\r\n",field[1]);
-				printf("Latitude  :%s\r\n",field[2]);
-				printf("Longitude :%s\r\n",field[4]);
-				printf("Altitude  :%s\r\n",field[9]);
-				printf("Satellites:%s\r\n",field[7]);
-			}
-			if (strncmp(buffer, "$GNRMC", 6) == 0) {
-				//printf("%s",buffer);	
-				i = parse_comma_delimited_str(buffer, field, 20);
-				//debug_print_fields(i,field);
-				printf("Speed     :%s\r\n",field[7]);
+			//printf("%s\r\n",buffer);
+			if (checksum_valid(buffer)) {
+				if (strncmp(buffer, "$GNGGA", 6) == 0) {
+					i = parse_comma_delimited_str(buffer, field, 20);
+					//debug_print_fields(i,field);
+					printf("UTC Time  :%s\r\n",field[1]);
+					printf("Latitude  :%s\r\n",field[2]);
+					printf("Longitude :%s\r\n",field[4]);
+					printf("Altitude  :%s\r\n",field[9]);
+					printf("Satellites:%s\r\n",field[7]);
+				}
+				if (strncmp(buffer, "$GNRMC", 6) == 0) {
+					i = parse_comma_delimited_str(buffer, field, 20);
+					//debug_print_fields(i,field);
+					printf("Speed     :%s\r\n",field[7]);
+				}
 			}
 		}
 	} while(1);
@@ -80,6 +83,56 @@ int debug_print_fields(int numfields, char **fields)
 	for (int i = 0; i <= numfields; i++) {
 		printf("Field %02d: [%s]\r\n",i,fields[i]);
 	}
+}
+
+int hexchar2int(char c)
+{
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+    return -1;
+}
+
+int hex2int(char *c)
+{
+	int value;	
+
+	value = hexchar2int(c[0]);
+	value = value << 4;
+	value += hexchar2int(c[1]);
+
+	return value;
+}
+
+int checksum_valid(char *string)
+{
+	char *checksum_str;					
+	int checksum;
+	unsigned char calculated_checksum = 0;
+	
+	// Checksum is postcede by *
+	checksum_str = strchr(string, '*');
+	if (checksum_str != NULL){
+		// Remove checksum from string
+		*checksum_str = '\0';
+		// Calculate checksum, starting after $ (i = 1)  	
+		for (int i = 1; i < strlen(string); i++) {
+			calculated_checksum = calculated_checksum ^ string[i];
+		}
+		checksum = hex2int((char *)checksum_str+1);
+		//printf("Checksum Str [%s], Checksum %02X, Calculated Checksum %02X\r\n",(char *)checksum_str+1, checksum, calculated_checksum);
+		if (checksum == calculated_checksum) {
+			//printf("Checksum OK");
+			return 1;
+		}
+	} else {
+		//printf("Error: Checksum missing or NULL NMEA message\r\n");
+		return 0;
+	}
+	return 0;
 }
 
 int parse_comma_delimited_str(char *string, char **fields, int max_fields)
