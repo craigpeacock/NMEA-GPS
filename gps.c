@@ -202,9 +202,10 @@ int SetTime(char *date, char *time)
 	
 	printf("Number of seconds since Epoch %ld\r\n",ts.tv_sec);
 	
-	if (ret = clock_settime(CLOCK_REALTIME, &ts)) {
-		if (ret = EPERM) printf("Unable to set clock, permission denied.\r\n");
-	}
+	ts.tv_nsec = 0;
+	ret = clock_settime(CLOCK_REALTIME, &ts);
+	if (ret) 
+		perror("Set Clock");
 	
 	//clock_gettime(CLOCK_REALTIME, &ts);
 	//printf("Number of seconds since Epoch %ld\r\n",ts.tv_sec);
