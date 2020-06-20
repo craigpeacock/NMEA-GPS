@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 	struct termios options;
 	char *field[20];
 		
-	if ((fd = open("/dev/ttyUSB1", O_RDWR | O_NOCTTY | O_NDELAY)) < 0) {
+	if ((fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NDELAY)) < 0) {
 		perror("Open");
 		return 1;
 	} 
@@ -34,6 +34,9 @@ int main(int argc, char **argv)
 	cfsetispeed(&options, B9600);
 	cfsetospeed(&options, B9600);
 
+	// Clear all input modes
+	options.c_iflag |= ICRNL;
+	
 	// Set 8 bits, no parity, 1 stop bit
 	options.c_cflag &= ~PARENB;
 	options.c_cflag &= ~CSTOPB;
@@ -41,6 +44,7 @@ int main(int argc, char **argv)
 	options.c_cflag |= CS8;
 	
 	options.c_lflag &= ~ECHO;
+	options.c_lflag |= ICANON;
 
 	// Set port attributes
 	tcsetattr(fd, TCSAFLUSH, &options);
@@ -55,21 +59,26 @@ int main(int argc, char **argv)
 				sleep(1);
 			} else {
 				buffer[nbytes - 1] = '\0';
-				//printf("%s\r\n",buffer);
+				//printf("[%s]\r\n",buffer);
 				if (checksum_valid(buffer)) {
-					if (strncmp(buffer, "$GNGGA", 6) == 0) {
-						i = parse_comma_delimited_str(buffer, field, 20);
-						//debug_print_fields(i,field);
-						printf("UTC Time  :%s\r\n",field[1]);
-						printf("Latitude  :%s\r\n",field[2]);
-						printf("Longitude :%s\r\n",field[4]);
-						printf("Altitude  :%s\r\n",field[9]);
-						printf("Satellites:%s\r\n",field[7]);
-					}
-					if (strncmp(buffer, "$GNRMC", 6) == 0) {
-						i = parse_comma_delimited_str(buffer, field, 20);
-						//debug_print_fields(i,field);
-						printf("Speed     :%s\r\n",field[7]);
+					if ((strncmp(buffer, "$GP", 3) == 0) |
+						(strncmp(buffer, "$GN", 3) == 0)) {	
+
+						if (strncmp(&buffer[3], "GGA", 3) == 0) {
+							i = parse_comma_delimited_str(buffer, field, 20);
+							//debug_print_fields(i,field);
+							printf("UTC Time  :%s\r\n",field[1]);
+							printf("Latitude  :%s\r\n",field[2]);
+							printf("Longitude :%s\r\n",field[4]);
+							printf("Altitude  :%s\r\n",field[9]);
+							printf("Satellites:%s\r\n",field[7]);
+						}
+						if (strncmp(&buffer[3], "RMC", 3) == 0) {
+							i = parse_comma_delimited_str(buffer, field, 20);
+							//debug_print_fields(i,field);
+							printf("Speed     :%s\r\n",field[7]);
+						}
+						
 					}
 				}
 			}
