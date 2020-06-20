@@ -9,6 +9,9 @@ int hex2int(char *c);
 int checksum_valid(char *string);
 int parse_comma_delimited_str(char *string, char **fields, int max_fields);
 int debug_print_fields(int numfields, char **fields);
+int OpenGPSPort(const char *devname);
+
+
 
 int main(int argc, char **argv)
 {
@@ -16,38 +19,13 @@ int main(int argc, char **argv)
 	char buffer[255];  
 	int nbytes; 
 	int i; 
-	struct termios options;
 	char *field[20];
-		
-	if ((fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NDELAY)) < 0) {
-		perror("Open");
-		return 1;
-	} 
-	
-	// Set to blocking
-	fcntl(fd, F_SETFL, 0); 
 
-	// Get port attributes
-	tcgetattr(fd, &options);
-
-	// Set input and output baud rates
-	cfsetispeed(&options, B9600);
-	cfsetospeed(&options, B9600);
-
-	// Clear all input modes
-	options.c_iflag |= ICRNL;
-	
-	// Set 8 bits, no parity, 1 stop bit
-	options.c_cflag &= ~PARENB;
-	options.c_cflag &= ~CSTOPB;
-	options.c_cflag &= ~CSIZE;
-	options.c_cflag |= CS8;
-	
-	options.c_lflag &= ~ECHO;
-	options.c_lflag |= ICANON;
-
-	// Set port attributes
-	tcsetattr(fd, TCSAFLUSH, &options);
+	if ((fd = OpenGPSPort("/dev/ttyUSB0")) < 0)
+	{
+		printf("Cannot open GPS port\r\n.");
+		return 0;
+	}
 
 	do {
 		if ((nbytes = read(fd, &buffer, sizeof(buffer))) < 0) {
@@ -163,6 +141,44 @@ int parse_comma_delimited_str(char *string, char **fields, int max_fields)
 	}
 
 	return --i;
+}
+
+int OpenGPSPort(const char *devname)
+{
+	int fd;
+	struct termios options;
+	
+	if ((fd = open(devname, O_RDWR | O_NOCTTY | O_NDELAY)) < 0) {
+		perror("Open");
+		return 1;
+	} 
+	
+	// Set to blocking
+	fcntl(fd, F_SETFL, 0); 
+
+	// Get port attributes
+	tcgetattr(fd, &options);
+
+	// Set input and output baud rates
+	cfsetispeed(&options, B9600);
+	cfsetospeed(&options, B9600);
+
+	// Clear all input modes
+	options.c_iflag |= ICRNL;
+	
+	// Set 8 bits, no parity, 1 stop bit
+	options.c_cflag &= ~PARENB;
+	options.c_cflag &= ~CSTOPB;
+	options.c_cflag &= ~CSIZE;
+	options.c_cflag |= CS8;
+	
+	options.c_lflag &= ~ECHO;
+	options.c_lflag |= ICANON;
+
+	// Set port attributes
+	tcsetattr(fd, TCSAFLUSH, &options);
+	
+	return(fd);
 }
 
 
