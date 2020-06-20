@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <termios.h>
 #include <time.h>
+#include <stdlib.h>
 
 int hex2int(char *c);
 int checksum_valid(char *string);
@@ -149,18 +150,67 @@ int parse_comma_delimited_str(char *string, char **fields, int max_fields)
 int SetTime(char *date, char *time)
 {
 	struct timespec ts;
-	struct tm *times;
+	struct tm gpstime;
 	time_t secs;
+	char tempbuf[2];
+	int ret;
 	
 	printf("GPS    UTC_Date %s, UTC_Time %s\r\n",date, time);
 	// GPS date has format of ddmmyy
 	// GPS time has format of hhmmss.ss
 	
-	clock_gettime(CLOCK_REALTIME, &ts);
+	if ((strlen(date) != 6) | (strlen(time) != 9)) {
+		printf("No date or time fix. Exiting\r\n");
+		return 1;
+	}
+	
+	// Parse day:
+	strncpy(tempbuf, (char *)date, 2);
+	tempbuf[2] = '\0';
+	gpstime.tm_mday = atoi(tempbuf); 
+	
+	// Parse month:
+	strncpy(tempbuf, (char *)date+2, 2);
+	tempbuf[2] = '\0';
+	gpstime.tm_mon = atoi(tempbuf) - 1;
+	
+	// Parse year:
+	strncpy(tempbuf, (char *)date+4, 2);
+	tempbuf[2] = '\0';
+	gpstime.tm_year = atoi(tempbuf) + 100;
+	
+	// Parse hour:
+	strncpy(tempbuf, (char *)time, 2);
+	tempbuf[2] = '\0';
+	gpstime.tm_hour = atoi(tempbuf);
+	
+	// Parse minutes:
+	strncpy(tempbuf, (char *)time+2, 2);
+	tempbuf[2] = '\0';
+	gpstime.tm_min = atoi(tempbuf);
+	
+	// Parse seconds:
+	strncpy(tempbuf, (char *)time+4, 2);
+	tempbuf[2] = '\0';
+	gpstime.tm_sec = atoi(tempbuf);
+	
+	printf("Converted UTC_Date %02d%02d%02d, UTC_Time %02d%02d%02d.00\r\n",gpstime.tm_mday,(gpstime.tm_mon)+1,(gpstime.tm_year)%100, gpstime.tm_hour, gpstime.tm_min, gpstime.tm_sec);
+
+	ts.tv_sec = mktime(&gpstime);
+	// Apply GMT offset to correct for timezone
+	ts.tv_sec += gpstime.tm_gmtoff;
+	
+	printf("Number of seconds since Epoch %ld\r\n",ts.tv_sec);
+	
+	if (ret = clock_settime(CLOCK_REALTIME, &ts)) {
+		if (ret = EPERM) printf("Unable to set clock, permission denied.\r\n");
+	}
+	
+	//clock_gettime(CLOCK_REALTIME, &ts);
 	//printf("Number of seconds since Epoch %ld\r\n",ts.tv_sec);
-	times = gmtime(&ts.tv_sec);
-	printf("System UTC_Date %02d%02d%02d, ",times->tm_mday,(times->tm_mon)+1,(times->tm_year)%100);
-	printf("UTC_Time %02d%02d%02d.00\r\n", times->tm_hour, times->tm_min, times->tm_sec);
+	//gpstime = gmtime(&ts.tv_sec);
+	//printf("System UTC_Date %02d%02d%02d, ",gpstime->tm_mday,(gpstime->tm_mon)+1,(gpstime->tm_year)%100);
+	//printf("UTC_Time %02d%02d%02d.00\r\n", gpstime->tm_hour, gpstime->tm_min, gpstime->tm_sec);
 	printf("\r\n");
 }
 
