@@ -4,14 +4,14 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <termios.h>
+#include <time.h>
 
 int hex2int(char *c);
 int checksum_valid(char *string);
 int parse_comma_delimited_str(char *string, char **fields, int max_fields);
 int debug_print_fields(int numfields, char **fields);
 int OpenGPSPort(const char *devname);
-
-
+int SetTime(char *date, char *time);
 
 int main(int argc, char **argv)
 {
@@ -20,7 +20,7 @@ int main(int argc, char **argv)
 	int nbytes; 
 	int i; 
 	char *field[20];
-
+	
 	if ((fd = OpenGPSPort("/dev/ttyUSB0")) < 0)
 	{
 		printf("Cannot open GPS port\r\n.");
@@ -55,8 +55,11 @@ int main(int argc, char **argv)
 							i = parse_comma_delimited_str(buffer, field, 20);
 							//debug_print_fields(i,field);
 							printf("Speed     :%s\r\n",field[7]);
+							//printf("UTC Time  :%s\r\n",field[1]);
+							//printf("Date      :%s\r\n",field[9]);
+							
+							SetTime(field[9],field[1]);
 						}
-						
 					}
 				}
 			}
@@ -141,6 +144,24 @@ int parse_comma_delimited_str(char *string, char **fields, int max_fields)
 	}
 
 	return --i;
+}
+
+int SetTime(char *date, char *time)
+{
+	struct timespec ts;
+	struct tm *times;
+	time_t secs;
+	
+	printf("GPS    UTC_Date %s, UTC_Time %s\r\n",date, time);
+	// GPS date has format of ddmmyy
+	// GPS time has format of hhmmss.ss
+	
+	clock_gettime(CLOCK_REALTIME, &ts);
+	//printf("Number of seconds since Epoch %ld\r\n",ts.tv_sec);
+	times = gmtime(&ts.tv_sec);
+	printf("System UTC_Date %02d%02d%02d, ",times->tm_mday,(times->tm_mon)+1,(times->tm_year)%100);
+	printf("UTC_Time %02d%02d%02d.00\r\n", times->tm_hour, times->tm_min, times->tm_sec);
+	printf("\r\n");
 }
 
 int OpenGPSPort(const char *devname)
