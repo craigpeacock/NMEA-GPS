@@ -1,4 +1,4 @@
-#include <stdio.h> 
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -16,12 +16,12 @@ int SetTime(char *date, char *time);
 
 int main(int argc, char **argv)
 {
-	int fd; 	
-	char buffer[255];  
-	int nbytes; 
-	int i; 
+	int fd;
+	char buffer[255];
+	int nbytes;
+	int i;
 	char *field[20];
-	
+
 	if ((fd = OpenGPSPort("/dev/ttyUSB0")) < 0)
 	{
 		printf("Cannot open GPS port\r\n.");
@@ -41,7 +41,7 @@ int main(int argc, char **argv)
 				//printf("[%s]\r\n",buffer);
 				if (checksum_valid(buffer)) {
 					if ((strncmp(buffer, "$GP", 3) == 0) |
-						(strncmp(buffer, "$GN", 3) == 0)) {	
+						(strncmp(buffer, "$GN", 3) == 0)) {
 
 						if (strncmp(&buffer[3], "GGA", 3) == 0) {
 							i = parse_comma_delimited_str(buffer, field, 20);
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 							printf("Speed     :%s\r\n",field[7]);
 							//printf("UTC Time  :%s\r\n",field[1]);
 							//printf("Date      :%s\r\n",field[9]);
-							
+
 							SetTime(field[9],field[1]);
 						}
 					}
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
 int debug_print_fields(int numfields, char **fields)
 {
 	printf("Parsed %d fields\r\n",numfields);
-	
+
 	for (int i = 0; i <= numfields; i++) {
 		printf("Field %02d: [%s]\r\n",i,fields[i]);
 	}
@@ -97,7 +97,7 @@ int hexchar2int(char c)
 
 int hex2int(char *c)
 {
-	int value;	
+	int value;
 
 	value = hexchar2int(c[0]);
 	value = value << 4;
@@ -108,16 +108,16 @@ int hex2int(char *c)
 
 int checksum_valid(char *string)
 {
-	char *checksum_str;					
+	char *checksum_str;
 	int checksum;
 	unsigned char calculated_checksum = 0;
-	
+
 	// Checksum is postcede by *
 	checksum_str = strchr(string, '*');
 	if (checksum_str != NULL){
 		// Remove checksum from string
 		*checksum_str = '\0';
-		// Calculate checksum, starting after $ (i = 1)  	
+		// Calculate checksum, starting after $ (i = 1)
 		for (int i = 1; i < strlen(string); i++) {
 			calculated_checksum = calculated_checksum ^ string[i];
 		}
@@ -154,59 +154,59 @@ int SetTime(char *date, char *time)
 	time_t secs;
 	char tempbuf[2];
 	int ret;
-	
+
 	printf("GPS    UTC_Date %s, UTC_Time %s\r\n",date, time);
 	// GPS date has format of ddmmyy
 	// GPS time has format of hhmmss.ss
-	
+
 	if ((strlen(date) != 6) | (strlen(time) != 9)) {
 		printf("No date or time fix. Exiting\r\n");
 		return 1;
 	}
-	
+
 	// Parse day:
 	strncpy(tempbuf, (char *)date, 2);
 	tempbuf[2] = '\0';
-	gpstime.tm_mday = atoi(tempbuf); 
-	
+	gpstime.tm_mday = atoi(tempbuf);
+
 	// Parse month:
 	strncpy(tempbuf, (char *)date+2, 2);
 	tempbuf[2] = '\0';
 	gpstime.tm_mon = atoi(tempbuf) - 1;
-	
+
 	// Parse year:
 	strncpy(tempbuf, (char *)date+4, 2);
 	tempbuf[2] = '\0';
 	gpstime.tm_year = atoi(tempbuf) + 100;
-	
+
 	// Parse hour:
 	strncpy(tempbuf, (char *)time, 2);
 	tempbuf[2] = '\0';
 	gpstime.tm_hour = atoi(tempbuf);
-	
+
 	// Parse minutes:
 	strncpy(tempbuf, (char *)time+2, 2);
 	tempbuf[2] = '\0';
 	gpstime.tm_min = atoi(tempbuf);
-	
+
 	// Parse seconds:
 	strncpy(tempbuf, (char *)time+4, 2);
 	tempbuf[2] = '\0';
 	gpstime.tm_sec = atoi(tempbuf);
-	
+
 	printf("Converted UTC_Date %02d%02d%02d, UTC_Time %02d%02d%02d.00\r\n",gpstime.tm_mday,(gpstime.tm_mon)+1,(gpstime.tm_year)%100, gpstime.tm_hour, gpstime.tm_min, gpstime.tm_sec);
 
 	ts.tv_sec = mktime(&gpstime);
 	// Apply GMT offset to correct for timezone
 	ts.tv_sec += gpstime.tm_gmtoff;
-	
+
 	printf("Number of seconds since Epoch %ld\r\n",ts.tv_sec);
-	
+
 	ts.tv_nsec = 0;
 	ret = clock_settime(CLOCK_REALTIME, &ts);
-	if (ret) 
+	if (ret)
 		perror("Set Clock");
-	
+
 	//clock_gettime(CLOCK_REALTIME, &ts);
 	//printf("Number of seconds since Epoch %ld\r\n",ts.tv_sec);
 	//gpstime = gmtime(&ts.tv_sec);
@@ -219,14 +219,14 @@ int OpenGPSPort(const char *devname)
 {
 	int fd;
 	struct termios options;
-	
+
 	if ((fd = open(devname, O_RDWR | O_NOCTTY | O_NDELAY)) < 0) {
 		perror("Open");
 		return 1;
-	} 
-	
+	}
+
 	// Set to blocking
-	fcntl(fd, F_SETFL, 0); 
+	fcntl(fd, F_SETFL, 0);
 
 	// Get port attributes
 	tcgetattr(fd, &options);
@@ -235,24 +235,20 @@ int OpenGPSPort(const char *devname)
 	cfsetispeed(&options, B9600);
 	cfsetospeed(&options, B9600);
 
-	// Clear all input modes
+	// Set input modes
 	options.c_iflag |= ICRNL;
-	
+
 	// Set 8 bits, no parity, 1 stop bit
 	options.c_cflag &= ~PARENB;
 	options.c_cflag &= ~CSTOPB;
 	options.c_cflag &= ~CSIZE;
 	options.c_cflag |= CS8;
-	
+
 	options.c_lflag &= ~ECHO;
 	options.c_lflag |= ICANON;
 
 	// Set port attributes
 	tcsetattr(fd, TCSAFLUSH, &options);
-	
+
 	return(fd);
 }
-
-
-
-
