@@ -1,6 +1,8 @@
 # NMEA-GPS
 A basic NMEA GPS parser designed and tested with the u-Blox MAX-8 series of GPS receiver. 
 
+https://www.beyondlogic.org/ansi-c-basic-lightweight-nmea-parser-for-gps/
+
 MAX-8 / MAX-M8 FW3 Hardware Integration Manual:
 https://www.u-blox.com/en/docs/UBX-13003221
 
