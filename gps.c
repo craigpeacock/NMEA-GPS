@@ -159,7 +159,7 @@ int SetTime(char *date, char *time)
 	// GPS date has format of ddmmyy
 	// GPS time has format of hhmmss.ss
 
-	if ((strlen(date) != 6) || (strlen(time) != 9)) {
+	if ((strlen(date) != 6) && (strlen(time) != 9)) {
 		printf("No date or time fix. Exiting\r\n");
 		return 1;
 	}
