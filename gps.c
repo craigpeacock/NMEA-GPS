@@ -152,7 +152,7 @@ int SetTime(char *date, char *time)
 	struct timespec ts;
 	struct tm gpstime;
 	time_t secs;
-	char tempbuf[2];
+	char tempbuf[3];
 	int ret;
 
 	printf("GPS    UTC_Date %s, UTC_Time %s\r\n",date, time);
